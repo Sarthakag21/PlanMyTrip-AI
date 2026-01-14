@@ -1,0 +1,12 @@
+Metadata-Version: 2.4
+Name: AI-TRAVEL-AGENT
+Version: 0.1
+Author: Sarthak
+Requires-Dist: langchain
+Requires-Dist: langchain_core
+Requires-Dist: langchain_groq
+Requires-Dist: langchain_community
+Requires-Dist: python-dotenv
+Requires-Dist: streamlit
+Dynamic: author
+Dynamic: requires-dist
