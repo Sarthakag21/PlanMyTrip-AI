@@ -26,8 +26,6 @@ spec:
       labels:
         app: elasticsearch
     spec:
-      securityContext:
-        fsGroup: 1000
       containers:
         - name: elasticsearch
           image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
@@ -35,22 +33,18 @@ spec:
             - name: discovery.type
               value: single-node
             - name: ES_JAVA_OPTS
-              value: >
-                -Xms512m -Xmx512m
-                -XX:-UseContainerSupport
-                -Dlog4j2.disable.jmx=true
-                -Des.cgroups.hierarchy.override=/
+              value: "-Xms512m -Xmx512m"
             - name: xpack.security.enabled
               value: "false"
-          securityContext:
-            runAsUser: 1000
+          ports:
+            - containerPort: 9200
           resources:
-            requests:
-              memory: "1Gi"
-              cpu: "500m"
             limits:
               memory: "2Gi"
               cpu: "1"
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
           volumeMounts:
             - mountPath: /usr/share/elasticsearch/data
               name: elasticsearch-storage
