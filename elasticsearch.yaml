@@ -34,6 +34,8 @@ spec:
           env:
             - name: discovery.type
               value: single-node
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:-UseContainerSupport"
             - name: ES_JAVA_OPTS
               value: "-Xms512m -Xmx512m -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true"
             - name: xpack.security.enabled
