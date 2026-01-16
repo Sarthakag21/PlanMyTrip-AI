@@ -34,23 +34,23 @@ spec:
           env:
             - name: discovery.type
               value: single-node
-            - name: JAVA_TOOL_OPTIONS
-              value: "-XX:-UseContainerSupport"
             - name: ES_JAVA_OPTS
-              value: "-Xms512m -Xmx512m -XX:-UseContainerSupport -Dlog4j2.disable.jmx=true"
+              value: >
+                -Xms512m -Xmx512m
+                -XX:-UseContainerSupport
+                -Dlog4j2.disable.jmx=true
+                -Des.cgroups.hierarchy.override=/
             - name: xpack.security.enabled
               value: "false"
-          ports:
-            - containerPort: 9200
           securityContext:
             runAsUser: 1000
           resources:
-            limits:
-              memory: "2Gi"
-              cpu: "1"
             requests:
               memory: "1Gi"
               cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1"
           volumeMounts:
             - mountPath: /usr/share/elasticsearch/data
               name: elasticsearch-storage
