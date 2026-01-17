@@ -6,8 +6,11 @@ AI_TRAVEL_AGENT.egg-info/requires.txt
 AI_TRAVEL_AGENT.egg-info/top_level.txt
 src/__init__.py
 src/chains/__init__.py
+src/chains/itinerary_chain.py
 src/config/__init__.py
+src/config/config.py
 src/core/__init__.py
+src/core/planner.py
 src/utils/__init__.py
 src/utils/custom_exception.py
 src/utils/logger.py

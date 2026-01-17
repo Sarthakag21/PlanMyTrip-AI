@@ -4,3 +4,4 @@ langchain_groq
 langchain_community
 python-dotenv
 streamlit
+elasticsearch>=8.0.0

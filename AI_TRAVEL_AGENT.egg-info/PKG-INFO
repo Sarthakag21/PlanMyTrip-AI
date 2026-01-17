@@ -8,5 +8,6 @@ Requires-Dist: langchain_groq
 Requires-Dist: langchain_community
 Requires-Dist: python-dotenv
 Requires-Dist: streamlit
+Requires-Dist: elasticsearch>=8.0.0
 Dynamic: author
 Dynamic: requires-dist
