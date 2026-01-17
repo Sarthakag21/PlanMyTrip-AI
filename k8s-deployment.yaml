@@ -20,9 +20,24 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8501
+
           envFrom:
             - secretRef:
                 name: llmops-secrets
+
+          # ✅ ADD THIS PART
+          env:
+            - name: ELASTIC_URL
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-secrets
+                  key: ELASTIC_URL
+
+            - name: ELASTIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-secrets
+                  key: ELASTIC_API_KEY
 ---
 apiVersion: v1
 kind: Service
