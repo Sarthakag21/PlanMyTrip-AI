@@ -25,27 +25,43 @@ with st.form("planner_form"):
     submitted = st.form_submit_button("Generate itinerary")
 
     if submitted:
+        st.write("✅ Form submitted")
+
         if city and interests:
-            planner = TravelPlanner()
-            planner.set_city(city)
-            planner.set_interests(interests)
-            itinerary = planner.create_itineary()
+            try:
+                st.write("➡ Creating planner")
 
-            st.subheader("📄 Your Itinerary")
-            st.markdown(itinerary)
+                planner = TravelPlanner()
+                planner.set_city(city)
+                planner.set_interests(interests)
 
-            # ---- Send to Elasticsearch ----
-            doc = {
-                "timestamp": datetime.utcnow(),
-                "city": city,
-                "interests": interests,
-                "itinerary": itinerary,
-                "app": "PlanMyTrip-AI",
-                "environment": "kubernetes"
-            }
+                st.write("➡ Generating itinerary")
+                itinerary = planner.create_itineary()
 
-            resp = es.index(index=INDEX_NAME, document=doc)
-            st.write("Elasticsearch response:", resp["_id"])
+                st.write("✅ Itinerary generated")
 
+                st.subheader("📄 Your Itinerary")
+                st.markdown(itinerary)
+
+                st.write("➡ Preparing ES document")
+
+                doc = {
+                    "timestamp": datetime.utcnow(),
+                    "city": city,
+                    "interests": interests,
+                    "itinerary": itinerary,
+                    "app": "PlanMyTrip-AI",
+                    "environment": "kubernetes"
+                }
+
+                st.write("➡ Sending to Elasticsearch")
+
+                resp = es.index(index=INDEX_NAME, document=doc)
+
+                st.success(f"✅ Saved to Elasticsearch, ID: {resp['_id']}")
+
+            except Exception as e:
+                st.error("❌ Error occurred")
+                st.exception(e)
         else:
             st.warning("Please fill City and Interests")
