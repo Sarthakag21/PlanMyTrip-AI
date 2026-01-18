@@ -29,44 +29,33 @@ with st.form("planner_form"):
     interests = st.text_input("Enter your interests (comma-separated)")
     submitted = st.form_submit_button("Generate itinerary")
 
-# ---------------- SUBMIT LOGIC ----------------
-if submitted:
-    st.write("STEP 1: Submitted")
+    if submitted:
+        if city and interests:
+            try:
+                planner = TravelPlanner()
+                planner.set_city(city)
+                planner.set_interests(interests)
+                itinerary = planner.create_itineary()
 
-    if city and interests:
-        try:
-            st.write("STEP 2: Creating planner")
+                # ---- Send to Elasticsearch FIRST ----
+                doc = {
+                    "timestamp": datetime.utcnow(),
+                    "city": city,
+                    "interests": interests,
+                    "itinerary": itinerary,
+                    "app": "PlanMyTrip-AI",
+                    "environment": "kubernetes"
+                }
 
-            planner = TravelPlanner()
-            planner.set_city(city)
-            planner.set_interests(interests)
+                resp = es.index(index=INDEX_NAME, document=doc)
 
-            st.write("STEP 3: Calling LLM")
-            itinerary = planner.create_itineary()
+                st.success(f"Saved to Elasticsearch ✔ (ID: {resp['_id']})")
 
-            st.write("STEP 4: LLM returned")
+                st.subheader("📄 Your Itinerary")
+                st.markdown(itinerary)
 
-            doc = {
-                "timestamp": datetime.utcnow(),
-                "city": city,
-                "interests": interests,
-                "itinerary": itinerary,
-                "app": "PlanMyTrip-AI",
-                "environment": "kubernetes"
-            }
-
-            st.write("STEP 5: Sending to Elasticsearch")
-
-            resp = es.index(index=INDEX_NAME, document=doc)
-
-            st.write("STEP 6: Elasticsearch response received")
-            st.success(f"Saved ✔ ID: {resp['_id']}")
-
-            st.subheader("📄 Your Itinerary")
-            st.markdown(itinerary)
-
-        except Exception as e:
-            st.error("❌ ERROR OCCURRED")
-            st.exception(e)
-    else:
-        st.warning("Please fill City and Interests")
+            except Exception as e:
+                st.error("❌ Error occurred")
+                st.exception(e)
+        else:
+            st.warning("Please fill City and Interests")
