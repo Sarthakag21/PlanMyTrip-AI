@@ -5,63 +5,61 @@ import os
 from elasticsearch import Elasticsearch
 from datetime import datetime
 
+# ---------------- UI SETUP ----------------
 st.set_page_config(page_title="PlanMyTrip AI")
 st.title("AI Trip Itinerary Planner")
 st.write("Plan your day trip itinerary by entering your city and interests")
 
 load_dotenv()
 
-# ---- Elasticsearch Client ----
+# ---------------- ELASTICSEARCH CLIENT ----------------
+ELASTIC_URL = os.getenv("ELASTIC_URL")
+ELASTIC_API_KEY = os.getenv("ELASTIC_API_KEY")
+
 es = Elasticsearch(
-    os.getenv("ELASTIC_URL"),
-    api_key=os.getenv("ELASTIC_API_KEY")
+    ELASTIC_URL,
+    api_key=ELASTIC_API_KEY
 )
 
 INDEX_NAME = "streamlit-logs"
 
+# ---------------- FORM ----------------
 with st.form("planner_form"):
     city = st.text_input("Enter the city name for your trip")
     interests = st.text_input("Enter your interests (comma-separated)")
     submitted = st.form_submit_button("Generate itinerary")
 
-    if submitted:
-        st.write("✅ Form submitted")
+# ---------------- SUBMIT LOGIC ----------------
+if submitted:
+    if city and interests:
+        try:
+            # ---- Generate itinerary (NO streamlit inside planner) ----
+            planner = TravelPlanner()
+            planner.set_city(city)
+            planner.set_interests(interests)
+            itinerary = planner.create_itineary()
 
-        if city and interests:
-            try:
-                st.write("➡ Creating planner")
+            # ---- Send to Elasticsearch FIRST ----
+            doc = {
+                "timestamp": datetime.utcnow(),
+                "city": city,
+                "interests": interests,
+                "itinerary": itinerary,
+                "app": "PlanMyTrip-AI",
+                "environment": "kubernetes"
+            }
 
-                planner = TravelPlanner()
-                planner.set_city(city)
-                planner.set_interests(interests)
+            resp = es.index(index=INDEX_NAME, document=doc)
 
-                st.write("➡ Generating itinerary")
-                itinerary = planner.create_itineary()
+            # ---- UI OUTPUT AFTER LOGGING ----
+            st.success(f"Saved to Elasticsearch ✔ (ID: {resp['_id']})")
 
-                st.write("✅ Itinerary generated")
+            st.subheader("📄 Your Itinerary")
+            st.markdown(itinerary)
 
-                st.subheader("📄 Your Itinerary")
-                st.markdown(itinerary)
+        except Exception as e:
+            st.error("❌ Something went wrong")
+            st.exception(e)
 
-                st.write("➡ Preparing ES document")
-
-                doc = {
-                    "timestamp": datetime.utcnow(),
-                    "city": city,
-                    "interests": interests,
-                    "itinerary": itinerary,
-                    "app": "PlanMyTrip-AI",
-                    "environment": "kubernetes"
-                }
-
-                st.write("➡ Sending to Elasticsearch")
-
-                resp = es.index(index=INDEX_NAME, document=doc)
-
-                st.success(f"✅ Saved to Elasticsearch, ID: {resp['_id']}")
-
-            except Exception as e:
-                st.error("❌ Error occurred")
-                st.exception(e)
-        else:
-            st.warning("Please fill City and Interests")
+    else:
+        st.warning("Please fill City and Interests")
