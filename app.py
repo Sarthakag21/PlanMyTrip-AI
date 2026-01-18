@@ -40,11 +40,16 @@ with st.form("planner_form"):
                 "city": city,
                 "interests": interests,
                 "itinerary": itinerary,
+
+                # ---- observability metrics ----
                 "itinerary_length": len(itinerary),
                 "prompt_length": len(city + interests),
+                "interest_count": len([i for i in interests.split(",") if i.strip()]),
+
                 "app": "PlanMyTrip-AI",
                 "environment": "kubernetes"
             }
+
 
             es.index(index=INDEX_NAME, document=doc)
 
