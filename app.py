@@ -44,9 +44,8 @@ with st.form("planner_form"):
                 "environment": "kubernetes"
             }
 
-            es.index(index=INDEX_NAME, document=doc)
-
-            st.success("Saved to Elasticsearch ✔")
+            resp = es.index(index=INDEX_NAME, document=doc)
+            st.write("Elasticsearch response:", resp["_id"])
 
         else:
             st.warning("Please fill City and Interests")
