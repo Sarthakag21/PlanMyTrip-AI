@@ -31,15 +31,21 @@ with st.form("planner_form"):
 
 # ---------------- SUBMIT LOGIC ----------------
 if submitted:
+    st.write("STEP 1: Submitted")
+
     if city and interests:
         try:
-            # ---- Generate itinerary (NO streamlit inside planner) ----
+            st.write("STEP 2: Creating planner")
+
             planner = TravelPlanner()
             planner.set_city(city)
             planner.set_interests(interests)
+
+            st.write("STEP 3: Calling LLM")
             itinerary = planner.create_itineary()
 
-            # ---- Send to Elasticsearch FIRST ----
+            st.write("STEP 4: LLM returned")
+
             doc = {
                 "timestamp": datetime.utcnow(),
                 "city": city,
@@ -49,17 +55,18 @@ if submitted:
                 "environment": "kubernetes"
             }
 
+            st.write("STEP 5: Sending to Elasticsearch")
+
             resp = es.index(index=INDEX_NAME, document=doc)
 
-            # ---- UI OUTPUT AFTER LOGGING ----
-            st.success(f"Saved to Elasticsearch ✔ (ID: {resp['_id']})")
+            st.write("STEP 6: Elasticsearch response received")
+            st.success(f"Saved ✔ ID: {resp['_id']}")
 
             st.subheader("📄 Your Itinerary")
             st.markdown(itinerary)
 
         except Exception as e:
-            st.error("❌ Something went wrong")
+            st.error("❌ ERROR OCCURRED")
             st.exception(e)
-
     else:
         st.warning("Please fill City and Interests")
