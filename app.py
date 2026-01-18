@@ -1,13 +1,9 @@
 import streamlit as st
 from src.core.planner import TravelPlanner
 from dotenv import load_dotenv
-
-# ✅ Elastic logging imports
-from elasticsearch import Elasticsearch
 import os
+from elasticsearch import Elasticsearch
 from datetime import datetime
-
-# ------------------ BASIC APP SETUP ------------------
 
 st.set_page_config(page_title="PlanMyTrip AI")
 st.title("AI Trip Itinerary Planner")
@@ -15,34 +11,13 @@ st.write("Plan your day trip itinerary by entering your city and interests")
 
 load_dotenv()
 
-# ------------------ ELASTIC CLOUD LOGGING SETUP ------------------
-
-ES_URL = os.getenv("ELASTIC_URL")
-ES_API_KEY = os.getenv("ELASTIC_API_KEY")
-
+# ---- Elasticsearch Client ----
 es = Elasticsearch(
-    ES_URL,
-    api_key=ES_API_KEY,
-    verify_certs=True
+    os.getenv("ELASTIC_URL"),
+    api_key=os.getenv("ELASTIC_API_KEY")
 )
 
-def send_log(level, message, extra=None):
-    doc = {
-        "@timestamp": datetime.utcnow(),
-        "level": level,
-        "message": message,
-        "service": "streamlit-app",
-        "environment": "kubernetes"
-    }
-    if extra:
-        doc.update(extra)
-
-    es.index(index="streamlit-logs", document=doc)
-
-# ✅ Log when app starts
-send_log("INFO", "Streamlit app started successfully")
-
-# ------------------ UI FORM ------------------
+INDEX_NAME = "streamlit-logs"
 
 with st.form("planner_form"):
     city = st.text_input("Enter the city name for your trip")
@@ -50,32 +25,28 @@ with st.form("planner_form"):
     submitted = st.form_submit_button("Generate itinerary")
 
     if submitted:
-        send_log("INFO", "Form submitted", {
-            "city": city,
-            "interests": interests
-        })
-
         if city and interests:
-            try:
-                planner = TravelPlanner()
-                planner.set_city(city)
-                planner.set_interests(interests)
+            planner = TravelPlanner()
+            planner.set_city(city)
+            planner.set_interests(interests)
+            itinerary = planner.create_itineary()
 
-                send_log("INFO", "Generating itinerary")
+            st.subheader("📄 Your Itinerary")
+            st.markdown(itinerary)
 
-                itinerary = planner.create_itineary()
+            # ---- Send to Elasticsearch ----
+            doc = {
+                "timestamp": datetime.utcnow(),
+                "city": city,
+                "interests": interests,
+                "itinerary": itinerary,
+                "app": "PlanMyTrip-AI",
+                "environment": "kubernetes"
+            }
 
-                send_log("INFO", "Itinerary generated successfully")
+            es.index(index=INDEX_NAME, document=doc)
 
-                st.subheader("📄 Your Itinerary")
-                st.markdown(itinerary)
-
-            except Exception as e:
-                send_log("ERROR", "Itinerary generation failed", {
-                    "error": str(e)
-                })
-                st.error("Something went wrong while generating itinerary.")
+            st.success("Saved to Elasticsearch ✔")
 
         else:
-            send_log("WARNING", "Form submitted with missing fields")
-            st.warning("Please fill City and Interests to move forward.")
+            st.warning("Please fill City and Interests")
