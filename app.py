@@ -44,11 +44,7 @@ with st.form("planner_form"):
                 "environment": "kubernetes"
             }
 
-            resp = es.index(index=INDEX_NAME, document=doc, refresh="wait_for")
-            st.write("ES response:", resp)
-
-            count = es.count(index=INDEX_NAME)
-            st.write("Current doc count:", count)
+            es.index(index=INDEX_NAME, document=doc, refresh="wait_for")
 
             st.success("Saved to Elasticsearch ✔")
 
