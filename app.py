@@ -11,13 +11,13 @@ st.write("Plan your day trip itinerary by entering your city and interests")
 
 load_dotenv()
 
-# ---- Elasticsearch Client ----
+# ---- Elasticsearch Cloud Client ----
 es = Elasticsearch(
     os.getenv("ELASTIC_URL"),
     api_key=os.getenv("ELASTIC_API_KEY")
 )
 
-INDEX_NAME = "streamlit-logs-v2"
+INDEX_NAME = "streamlit-logs"
 
 with st.form("planner_form"):
     city = st.text_input("Enter the city name for your trip")
@@ -25,18 +25,21 @@ with st.form("planner_form"):
     submitted = st.form_submit_button("Generate itinerary")
 
     if submitted:
+        st.write("✅ Form submitted")
+
         if city and interests:
             planner = TravelPlanner()
             planner.set_city(city)
             planner.set_interests(interests)
+
+            st.write("⚙ Generating itinerary...")
             itinerary = planner.create_itineary()
 
             st.subheader("📄 Your Itinerary")
             st.markdown(itinerary)
 
-            # ---- Send to Elasticsearch ----
             doc = {
-                "timestamp": datetime.utcnow(),
+                "timestamp": datetime.utcnow().isoformat(),  # IMPORTANT
                 "city": city,
                 "interests": interests,
                 "itinerary": itinerary,
@@ -44,9 +47,15 @@ with st.form("planner_form"):
                 "environment": "kubernetes"
             }
 
-            es.index(index=INDEX_NAME, document=doc, refresh="wait_for")
+            st.write("📤 Sending to Elasticsearch...")
 
-            st.success("Saved to Elasticsearch ✔")
+            try:
+                resp = es.index(index=INDEX_NAME, document=doc, refresh=True)
+                st.write("✅ Elasticsearch result:", resp["result"])
+                st.success("Saved to Elasticsearch ✔")
+            except Exception as e:
+                st.error("❌ Elasticsearch error")
+                st.exception(e)
 
         else:
             st.warning("Please fill City and Interests")
