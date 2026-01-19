@@ -30,6 +30,7 @@ with st.form("planner_form"):
         st.write("✅ Form submitted")
 
         if city and interests:
+            st.write("ABOUT TO SAVE TO ES")
             planner = TravelPlanner()
             planner.set_city(city)
             planner.set_interests(interests)
