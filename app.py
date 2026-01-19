@@ -5,6 +5,8 @@ import os
 from elasticsearch import Elasticsearch
 from datetime import datetime
 
+st.cache_data.clear()
+st.cache_resource.clear()
 st.set_page_config(page_title="PlanMyTrip AI")
 st.title("AI Trip Itinerary Planner")
 st.write("Plan your day trip itinerary by entering your city and interests")
@@ -38,23 +40,24 @@ with st.form("planner_form"):
             st.subheader("📄 Your Itinerary")
             st.markdown(itinerary)
 
-            doc = {
-                "timestamp": datetime.utcnow().isoformat(),  # IMPORTANT
-                "city": city,
-                "interests": interests,
-                "itinerary": itinerary,
-                "app": "PlanMyTrip-AI",
-                "environment": "kubernetes"
-            }
-
-            st.write("📤 Sending to Elasticsearch...")
-
+            # ---- Send to Elasticsearch ----
             try:
-                resp = es.index(index=INDEX_NAME, document=doc, refresh=True)
-                st.write("✅ Elasticsearch result:", resp["result"])
+                doc = {
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "city": city,
+                    "interests": interests,
+                    "itinerary": itinerary,
+                    "app": "PlanMyTrip-AI",
+                    "environment": "kubernetes"
+                }
+
+                res = es.index(index=INDEX_NAME, document=doc, refresh="wait_for")
+
                 st.success("Saved to Elasticsearch ✔")
+                st.write("ES response:", res)
+
             except Exception as e:
-                st.error("❌ Elasticsearch error")
+                st.error("Failed to save to Elasticsearch")
                 st.exception(e)
 
         else:
