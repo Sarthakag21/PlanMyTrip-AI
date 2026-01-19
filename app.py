@@ -44,7 +44,7 @@ with st.form("planner_form"):
                 "environment": "kubernetes"
             }
 
-            es.index(index=INDEX_NAME, document=doc)
+            es.index(index=INDEX_NAME, document=doc, refresh="wait_for")
 
             st.success("Saved to Elasticsearch ✔")
 
