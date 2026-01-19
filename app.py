@@ -5,27 +5,40 @@ import os
 from elasticsearch import Elasticsearch
 from datetime import datetime
 
+# ---------------- CONFIG ----------------
 st.set_page_config(page_title="PlanMyTrip AI")
 st.title("AI Trip Itinerary Planner")
 st.write("Plan your day trip itinerary by entering your city and interests")
 
 load_dotenv()
 
-# ---- Elasticsearch Client ----
+# ---------------- ES CLIENT ----------------
 es = Elasticsearch(
     os.getenv("ELASTIC_URL"),
-    api_key=os.getenv("ELASTIC_API_KEY")
+    api_key=os.getenv("ELASTIC_API_KEY"),
+    request_timeout=30
 )
 
 INDEX_NAME = "streamlit-logs"
 
+# ---------------- SESSION STATE ----------------
+if "submitted" not in st.session_state:
+    st.session_state.submitted = False
+
+# ---------------- FORM ----------------
 with st.form("planner_form"):
     city = st.text_input("Enter the city name for your trip")
     interests = st.text_input("Enter your interests (comma-separated)")
-    submitted = st.form_submit_button("Generate itinerary")
+    submit_btn = st.form_submit_button("Generate itinerary")
 
-    if submitted:
-        if city and interests:
+    if submit_btn:
+        st.session_state.submitted = True
+
+# ---------------- PROCESS ----------------
+if st.session_state.submitted:
+
+    if city and interests:
+        try:
             planner = TravelPlanner()
             planner.set_city(city)
             planner.set_interests(interests)
@@ -34,19 +47,34 @@ with st.form("planner_form"):
             st.subheader("📄 Your Itinerary")
             st.markdown(itinerary)
 
-            # ---- Send to Elasticsearch ----
+            # -------- SAVE TO ELASTICSEARCH --------
             doc = {
-                "timestamp": datetime.utcnow(),
+                "timestamp": datetime.utcnow().isoformat(),
                 "city": city,
                 "interests": interests,
                 "itinerary": itinerary,
+                "itinerary_length": len(itinerary),
                 "app": "PlanMyTrip-AI",
                 "environment": "kubernetes"
             }
 
-            es.index(index=INDEX_NAME, document=doc, refresh="wait_for")
+            resp = es.index(
+                index=INDEX_NAME,
+                document=doc,
+                refresh="wait_for"
+            )
 
-            st.success("Saved to Elasticsearch ✔")
+            if resp.get("result") in ["created", "updated"]:
+                st.success("✅ Saved to Elasticsearch")
+            else:
+                st.warning("⚠ Saved but unexpected ES response")
 
-        else:
-            st.warning("Please fill City and Interests")
+        except Exception as e:
+            st.error("❌ Failed to save to Elasticsearch")
+            st.exception(e)
+
+    else:
+        st.warning("Please fill City and Interests")
+
+    # prevent resubmission on rerun
+    st.session_state.submitted = False
